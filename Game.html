@@ -1,0 +1,390 @@
+<html>
+    <head>
+        <title>Space shooter</title>
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                background: #05050f;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                overflow: hidden;
+            }
+
+            #starfield {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            canvas {
+                border: 1px solid #1a2a1a;
+                position: relative;
+                z-index: 1;
+            }
+
+            #overlay {
+                display: none;
+                position: absolute;
+                flex-direction: column;
+                align-items: center;
+                gap: 40px;
+                width: 480px;
+                z-index: 2;
+            }
+
+            #overlay.visible {
+                display: flex;
+            }
+
+            #overlay h1 {
+                color: #ffffff;
+                font-family: 'Orbitron', sans-serif;
+                font-size: 52px;
+                font-weight: 900;
+                margin: 0;
+                letter-spacing: 8px;
+            }
+
+            #overlay h1 span {
+                color: #7fff00;
+            }
+
+            #overlay .subtitle {
+                color: #444;
+                font-family: 'Orbitron', sans-serif;
+                font-size: 10px;
+                letter-spacing: 5px;
+                text-transform: uppercase;
+                margin: -32px 0 0 0;
+            }
+
+            #overlay .scores {
+                display: flex;
+                gap: 32px;
+            }
+
+            #overlay .score-box {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+            }
+
+            #overlay .score-label {
+                color: #444;
+                font-family: 'Orbitron', sans-serif;
+                font-size: 9px;
+                letter-spacing: 4px;
+                text-transform: uppercase;
+            }
+
+            #overlay .score-value {
+                color: #7fff00;
+                font-family: 'Orbitron', sans-serif;
+                font-size: 28px;
+                font-weight: 700;
+            }
+
+            #overlay .score-value.white {
+                color: #ffffff;
+            }
+
+            #overlay .buttons {
+                display: flex;
+                gap: 16px;
+            }
+
+            #overlay button {
+                background: transparent;
+                border: 1px solid #333;
+                color: #666;
+                width: 120px;
+                height: 44px;
+                font-size: 11px;
+                letter-spacing: 3px;
+                text-transform: uppercase;
+                cursor: pointer;
+                font-family: 'Orbitron', sans-serif;
+                transition: all 0.2s;
+            }
+
+            #overlay button:hover {
+                border-color: #7fff00;
+                color: #7fff00;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="starfield"></canvas>
+        <canvas id="gameCanvas" width="480" height="720"></canvas>
+
+        <div id="overlay">
+            <h1>YOU <span>DIED</span></h1>
+            <p class="subtitle">Das Void hat gewonnen</p>
+            <div class="scores">
+                <div class="score-box">
+                    <span class="score-label">Score</span>
+                    <span class="score-value white" id="finalScore">0</span>
+                </div>
+                <div class="score-box">
+                    <span class="score-label">Highscore</span>
+                    <span class="score-value" id="finalHighscore">0</span>
+                </div>
+            </div>
+            <div class="buttons">
+                <button onclick="window.location.href='index.html'">HOME</button>
+                <button onclick="restartGame()">RETRY</button>
+            </div>
+        </div>
+
+        <script>
+            
+            const starCanvas = document.getElementById('starfield');
+            const sctx = starCanvas.getContext('2d');
+
+            starCanvas.width = window.innerWidth;
+            starCanvas.height = window.innerHeight;
+
+            const layers = [
+                { stars: [], speed: 0.2, size: 0.8, count: 120, color: '#ffffff' },
+                { stars: [], speed: 0.6, size: 1.2, count: 60,  color: '#aaffaa' },
+                { stars: [], speed: 1.2, size: 1.8, count: 25,  color: '#7fff00' },
+            ];
+
+            layers.forEach(layer => {
+                for (let i = 0; i < layer.count; i++) {
+                    layer.stars.push({
+                        x: Math.random() * starCanvas.width,
+                        y: Math.random() * starCanvas.height,
+                    });
+                }
+            });
+
+            function drawStarfield() {
+                sctx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+
+                layers.forEach(layer => {
+                    layer.stars.forEach(star => {
+                        star.y += layer.speed;
+                        if (star.y > starCanvas.height) {
+                            star.y = 0;
+                            star.x = Math.random() * starCanvas.width;
+                        }
+                        sctx.fillStyle = layer.color;
+                        sctx.globalAlpha = 0.6 + Math.random() * 0.4;
+                        sctx.beginPath();
+                        sctx.arc(star.x, star.y, layer.size, 0, Math.PI * 2);
+                        sctx.fill();
+                    });
+                });
+
+                sctx.globalAlpha = 1;
+                requestAnimationFrame(drawStarfield);
+            }
+
+            drawStarfield();
+
+            const keys = {};
+
+            document.addEventListener("keydown", function(e) {
+                keys[e.key] = true;
+            });
+
+            document.addEventListener("keyup", function(e) {
+                keys[e.key] = false;
+            });
+
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const overlay = document.getElementById('overlay');
+
+            let bullets = [];
+            let enemies = [];
+            let spawnTimer = 0;
+            let isDead = false;
+            let score = 0;
+            let highscore = localStorage.getItem('voidHighscore') ? parseInt(localStorage.getItem('voidHighscore')) : 0;
+
+            let shipX = 240;
+            let shipY = 620;
+
+            function spawnEnemy() {
+                enemies.push({
+                    x: Math.floor(Math.random() * 440) + 20,
+                    y: 0,
+                    size: Math.floor(Math.random() * 8) + 14,
+                    rotation: Math.random() * Math.PI * 2,
+                    rotSpeed: (Math.random() - 0.5) * 0.06,
+                    shape: generateMeteorShape()
+                });
+            }
+
+            function generateMeteorShape() {
+                const points = [];
+                const numPoints = Math.floor(Math.random() * 3) + 7;
+                for (let i = 0; i < numPoints; i++) {
+                    const angle = (i / numPoints) * Math.PI * 2;
+                    const radius = 0.7 + Math.random() * 0.3;
+                    points.push({ angle, radius });
+                }
+                return points;
+            }
+
+            function drawMeteor(x, y, size, rotation, shape) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(rotation);
+                ctx.beginPath();
+                for (let i = 0; i < shape.length; i++) {
+                    const px = Math.cos(shape[i].angle) * size * shape[i].radius;
+                    const py = Math.sin(shape[i].angle) * size * shape[i].radius;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fillStyle = "#2a4a1a";
+                ctx.fill();
+                ctx.strokeStyle = "#7fff00";
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            function drawHUD() {
+                ctx.fillStyle = "#3a3a3a";
+                ctx.font = "11px Orbitron";
+                ctx.fillText("SCORE", 20, 30);
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 20px Orbitron";
+                ctx.fillText(score, 20, 54);
+
+                const highscoreText = highscore.toString();
+                ctx.fillStyle = "#3a3a3a";
+                ctx.font = "11px Orbitron";
+                ctx.fillText("BEST", 460 - ctx.measureText("BEST").width, 30);
+                ctx.fillStyle = "#7fff00";
+                ctx.font = "bold 20px Orbitron";
+                ctx.fillText(highscoreText, 460 - ctx.measureText(highscoreText).width, 54);
+            }
+
+            function restartGame() {
+                bullets = [];
+                enemies = [];
+                spawnTimer = 0;
+                isDead = false;
+                score = 0;
+                shipX = 240;
+                shipY = 620;
+                overlay.classList.remove('visible');
+                gameLoop();
+            }
+
+            function gameLoop() {
+                if (isDead) return;
+
+                if (keys[" "] && !keys["lastShot"]) {
+                    bullets.push({ x: shipX, y: shipY - 22 });
+                    keys["lastShot"] = true;
+                }
+
+                if (!keys[" "]) keys["lastShot"] = false;
+
+                if (keys["ArrowLeft"] && shipX > 20) shipX -= 5;
+                if (keys["ArrowRight"] && shipX < 460) shipX += 5;
+                if (keys["ArrowUp"] && shipY > 360) shipY -= 5;
+                if (keys["ArrowDown"] && shipY < 700) shipY += 5;
+
+                spawnTimer++;
+                if (spawnTimer >= 90) {
+                    spawnEnemy();
+                    spawnTimer = 0;
+                }
+
+                ctx.fillStyle = "#05050f";
+                ctx.fillRect(0, 0, 480, 720);
+
+                drawHUD();
+
+                for (let i = 0; i < enemies.length; i++) {
+                    drawMeteor(enemies[i].x, enemies[i].y, enemies[i].size, enemies[i].rotation, enemies[i].shape);
+                    enemies[i].y += 8;
+                    enemies[i].rotation += enemies[i].rotSpeed;
+                    if (enemies[i].y > 720) {
+                        enemies.splice(i, 1);
+                        i--;
+                    }
+                }
+
+                for (let i = 0; i < bullets.length; i++) {
+                    let hit = false;
+                    for (let j = 0; j < enemies.length; j++) {
+                        const dx = bullets[i].x - enemies[j].x;
+                        const dy = bullets[i].y - enemies[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < enemies[j].size) {
+                            bullets.splice(i, 1);
+                            enemies.splice(j, 1);
+                            i--;
+                            score++;
+                            if (score > highscore) {
+                                highscore = score;
+                                localStorage.setItem('voidHighscore', highscore);
+                            }
+                            hit = true;
+                            break;
+                        }
+                    }
+                    if (hit) continue;
+
+                    bullets[i].y -= 8;
+                    ctx.fillStyle = "#7fff00";
+                    ctx.fillRect(bullets[i].x - 2, bullets[i].y, 4, 12);
+                    if (bullets[i].y < 0) {
+                        bullets.splice(i, 1);
+                        i--;
+                    }
+                }
+
+                for (let i = 0; i < enemies.length; i++) {
+                    const dx = shipX - enemies[i].x;
+                    const dy = shipY - enemies[i].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < enemies[i].size + 10) {
+                        isDead = true;
+                        ctx.fillStyle = "#05050f";
+                        ctx.fillRect(0, 0, 480, 720);
+                        document.getElementById('finalScore').textContent = score;
+                        document.getElementById('finalHighscore').textContent = highscore;
+                        overlay.classList.add('visible');
+                        return;
+                    }
+                }
+
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.moveTo(shipX, shipY - 22);
+                ctx.lineTo(shipX - 14, shipY + 16);
+                ctx.lineTo(shipX, shipY + 6);
+                ctx.lineTo(shipX + 14, shipY + 16);
+                ctx.closePath();
+                ctx.fill();
+
+                requestAnimationFrame(gameLoop);
+            }
+
+            gameLoop();
+        </script>
+    </body>
+</html>
