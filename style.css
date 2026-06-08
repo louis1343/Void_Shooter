@@ -1,0 +1,178 @@
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --black: #090909;
+    --white: #f0f0f0;
+    --accent: #c8ff00;
+    --gray-light: #888;
+}
+
+body {
+    background-color: var(--black);
+    color: var(--white);
+    font-family: 'Rajdhani', sans-serif;
+}
+
+#header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 48px;
+    background: rgba(9, 9, 9, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+}
+
+h1, h2 {
+    font-size: 1.4rem;
+    letter-spacing: 4px;
+    font-family: 'Orbitron', monospace;
+}
+
+.logo-v {
+    color: var(--accent);
+}
+
+.tagline {
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+    color: var(--gray-light);
+    text-transform: uppercase;
+}
+
+.slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+}
+
+.slide-content {
+    position: relative;
+    z-index: 1;
+    padding: 80px;
+}
+
+.slide.active {
+    opacity: 1;
+}
+
+.slide-bg {
+    position: absolute;
+    inset: 0;
+}
+
+.bg1 {
+    background: radial-gradient(ellipse at 70% 40%, #5a9421 0%, #090909 70%);
+}
+
+.bg2 {
+    background: radial-gradient(ellipse at 30% 60%, #084581 0%, #090909 70%);
+}
+
+.bg3 {
+    background: radial-gradient(ellipse at 50% 30%, #da1d7b 0%, #640c0c 70%);
+}
+
+.slide-content h2 {
+    font-size: 5rem;
+    font-weight: 900;
+    line-height: 0.95;
+    margin-bottom: 24px;
+}
+
+.slide-content p {
+    font-size: 1.1rem;
+    color: var(--gray-light);
+    max-width: 400px;
+}
+
+.carousel-controls {
+    position: absolute;
+    bottom: 40px;
+    right: 80px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 10;
+}
+
+.carousel-controls button {
+    background: transparent;
+    border: 1px solid var(--gray-light);
+    color: var(--white);
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+.carousel-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    background: var(--gray-light);
+    border-radius: 50%;
+}
+
+.dot.active {
+    background: var(--accent);
+    width: 24px;
+    border-radius: 3px;
+}
+
+#promo {
+    padding: 120px 80px;
+    background: var(--black);
+}
+
+#carousel {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#footer {
+    padding: 60px 80px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+#promo h2 {
+    font-size: 1.4rem;
+    letter-spacing: 4px;
+    font-family: 'Orbitron', monospace;
+}
+
+.button {
+    padding: 20px 30px;
+    font-size: 22px;
+    border: none; /* kein rand beim button*/
+    border-radius: 50px; /*Border radius macht das rund*/
+    background-color: var(--gray-light);
+    color: black;
+    font-family: 'Courier New', Courier, monospace;
+    transition: box-shadow 0.3s; /*Ist für cleanen übergang zuständig*/
+    font-weight: bold;
+    margin: 50px;
+    display: inline-block;
+}
+
+#promo a {
+    color: var(--black);
+}
+
+.buttons button:hover {
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3); /*Schatten hinter dem Button*/
+}
